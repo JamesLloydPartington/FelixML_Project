@@ -1,0 +1,29 @@
+import os 
+import shutil
+import numpy as np
+from PIL import Image
+from numpy import asarray
+
+
+Dir = "E:/pngs_thick"
+New = "E:/pngs_thick_quater"
+
+pngs = os.listdir(Dir)
+
+
+os.mkdir(New)
+for i in pngs:
+    #print(i)
+    os.mkdir(New + "/" + i)
+    png_i = os.listdir(Dir + "/" + i)
+    for j in png_i:
+        print(j)
+        os.mkdir(New + "/" + i + "/" + j)
+        png_j = os.listdir(Dir + "/" + i + "/" + j)
+        for k in png_j:
+            #print(k)
+            image = Image.open(Dir + "/" + i + "/" + j + "/" + k)
+            data = asarray(image)
+            quaterdata = data[0:64, 0:64]
+            QuaterImage = Image.fromarray(quaterdata)
+            QuaterImage.save(New + "/" + i + "/" + j + "/" + k)
