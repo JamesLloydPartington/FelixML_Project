@@ -1,0 +1,26 @@
+import os 
+import numpy as np
+from PIL import Image
+from numpy import asarray
+
+Path = "E:/pngs_thick_fullnp"
+
+
+AllData = np.load(Path + "/ImageData.npy")
+AllLabel = np.load(Path + "/ImageLab.npy")
+
+
+def SymTest(Array):
+    Q2 = 0
+    Q3 = 0
+    Q4 = 0
+    for k in range(0, 64):
+        for l in range(0, 64):
+            Q2 = Q2 + (Array[k][l] - Array[-1 - k][l]) ** 2
+            Q3 = Q3 + (Array[k][l] - Array[-1 - k][-1 - l]) ** 2
+            Q3 = Q3 + (Array[k][l] - Array[k][-1 - l]) ** 2
+    print(Q2, Q3, Q4)
+
+for i in AllData:
+    for j in i:
+        SymTest(j)
