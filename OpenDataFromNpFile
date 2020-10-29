@@ -1,0 +1,69 @@
+#echo 1 | sudo tee /proc/sys/vm/overcommit_memory
+
+import numpy as np
+
+Path = "pngs_thick_quater_np"
+
+AllData = np.load(Path + "/ImageData.npy")
+AllLabel = np.load(Path + "/ImageLab.npy")
+
+No_Crystals = AllData.shape[0]
+Total_ints = AllData.shape[0] * AllData.shape[1] * AllData.shape[2] * AllData.shape[3] 
+
+Shuffle_Index = np.arange(No_Crystals)
+np.random.shuffle(Shuffle_Index)
+
+###########
+TrainRatio = 0.9
+
+
+###########
+TrainCrystalNo = round(0.9 * No_Crystals)
+TestCrystalNo = No_Crystals - TrainCrystalNo
+PixleNo = AllData.shape[2] * AllData.shape[3]
+
+train_images = np.zeros(TrainCrystalNo * PixleNo * AllData.shape[1]).reshape(TrainCrystalNo, AllData.shape[1], AllData.shape[2], AllData.shape[3])
+test_images = np.zeros(TestCrystalNo * PixleNo * AllData.shape[1]).reshape(TestCrystalNo, AllData.shape[1], AllData.shape[2], AllData.shape[3])
+
+train_lab = np.zeros(TrainCrystalNo * AllData.shape[1], dtype = np.uint8).reshape(TrainCrystalNo, AllData.shape[1])
+test_lab = np.zeros(TestCrystalNo * AllData.shape[1], dtype = np.uint8).reshape(TestCrystalNo, AllData.shape[1])
+
+for i in range(0, No_Crystals): #Put Shuffled Crystals into training and validation
+	if(i < TrainCrystalNo):
+		train_images[i] = AllData[Shuffle_Index[i]]
+		train_lab[i] = AllLabel[Shuffle_Index[i]]
+	else:
+		test_images[i - TrainCrystalNo] = AllData[Shuffle_Index[i]]
+		test_lab[i - TrainCrystalNo] = AllLabel[Shuffle_Index[i]]
+		
+
+Shuffle_Index_Train = np.arange(TrainCrystalNo * AllData.shape[1])
+Shuffle_Index_Test = np.arange(TestCrystalNo * AllData.shape[1])
+
+np.random.shuffle(Shuffle_Index_Train)
+np.random.shuffle(Shuffle_Index_Test)
+
+train_images = train_images.reshape(-1, AllData.shape[2], AllData.shape[3])
+test_images = test_images.reshape(-1, AllData.shape[2], AllData.shape[3])
+train_lab = train_lab.reshape(-1)
+test_lab = test_lab.reshape(-1)
+
+train_images_copy = train_images
+test_images_copy = test_images
+train_lab_copy = train_lab
+test_lab_copy = test_lab
+
+
+for i in range(0,TrainCrystalNo * AllData.shape[1]):
+	train_images_copy[i] = train_images[Shuffle_Index_Train[i]]
+	train_lab_copy[i] = train_lab[Shuffle_Index_Train[i]]
+for i in range(0,TestCrystalNo * AllData.shape[1]):
+	test_images_copy[i] = test_images[Shuffle_Index_Test[i]]
+	test_lab_copy[i] = test_lab[Shuffle_Index_Test[i]]
+
+train_images = train_images_copy.astype("float32") / 128
+test_images = test_images_copy.astype("float32") / 128
+train_lab = train_lab_copy
+test_lab = test_lab_copy
+
+
