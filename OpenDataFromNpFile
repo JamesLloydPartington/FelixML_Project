@@ -43,8 +43,8 @@ Shuffle_Index_Test = np.arange(TestCrystalNo * AllData.shape[1])
 np.random.shuffle(Shuffle_Index_Train)
 np.random.shuffle(Shuffle_Index_Test)
 
-train_images = train_images.reshape(-1, AllData.shape[2], AllData.shape[3])
-test_images = test_images.reshape(-1, AllData.shape[2], AllData.shape[3])
+train_images = train_images.reshape(-1, AllData.shape[2], AllData.shape[3], 1)
+test_images = test_images.reshape(-1, AllData.shape[2], AllData.shape[3], 1)
 train_lab = train_lab.reshape(-1)
 test_lab = test_lab.reshape(-1)
 
