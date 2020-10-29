@@ -1,0 +1,62 @@
+import os 
+import numpy as np
+from PIL import Image
+from numpy import asarray
+
+Path = "E:/pngs_thick_quater"
+NewPath = "E:/pngs_thick_quater_np"
+
+
+pngs = sorted(os.listdir(Path))
+
+fileNo = 0
+for i in pngs:
+    png_i = sorted(os.listdir(Path + "/" + i))
+    for j in png_i:
+        png_j = sorted(os.listdir(Path + "/" + i + "/" + j))
+        for k in png_j:
+            fileNo = fileNo + 1
+print(fileNo)
+
+DiIm = [int(fileNo / 10), 10, 64, 64]
+DiLab = [int(fileNo / 10), 10]
+
+
+AllData = np.arange((DiIm[0] * DiIm[1] * DiIm[2] * DiIm[3]), dtype = np.uint8).reshape(DiIm)
+AllLabel = np.arange(DiIm[0] * DiIm[1]).reshape(DiLab)
+File1  = open(NewPath +"\\Key.txt", "w+")
+
+no_i = 0 #Inside val and train
+no_j = 0 #Inside thickness
+no_k = 0 #Each crystal
+no_first = 0
+for i in pngs:
+    png_i = sorted(os.listdir(Path + "/" + i))
+    no_j = 0
+    for j in png_i:
+        png_j = sorted(os.listdir(Path + "/" + i + "/" + j))
+        
+        if no_i == 0:
+            no_k = 0
+        else:
+            no_k = no_first
+        
+        for k in png_j:
+            image = Image.open(Path + "/" + i + "/" + j + "/" + k)
+            data = asarray(image)
+            
+            AllData[no_k][no_j] = data
+            AllLabel[no_k][no_j] = no_j
+            File1.write(str(no_k)+" "+ str(no_j) + " " + k +"\n")
+            
+            no_k = no_k + 1
+        if no_i == 0:
+            no_first = no_k
+        no_j = no_j + 1
+        print(no_j - 1)
+    no_i = no_i + 1
+            
+
+np.save(NewPath+"/ImageData.npy", AllData)
+np.save(NewPath+"/ImageLab.npy", AllLabel)
+
