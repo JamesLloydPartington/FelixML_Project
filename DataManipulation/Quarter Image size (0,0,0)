@@ -1,0 +1,72 @@
+import os 
+import numpy as np
+
+Path = "64bit_arrs" #File path, give path to folder containing the .txt files of all the (0, 0, 0) images
+NewPath = "Quarter32Bit" #File path, give the path of the folder you want to put the output files in. (Needs to exist before running the program)
+
+imageName = sorted(os.listdir(Path)) #Sorts the lists of all the crysrals in alphabetical order, and will also order the thicknesses.
+
+fileNo = 0
+for i in imageName:
+    fileNo = fileNo + 1            
+print("Number of images:", fileNo) #Check to see how many images there are
+
+DiIm = [int(fileNo / 10), 10, 64, 64] #Declare the array shape to store all the images. The shape is (Number of types of crystal, Number of thicknesses, x-dimension, y-dimension) note 128/2 = 64 quatersized images 
+DiLab = [int(fileNo / 10), 10] #Declare array shape to store all the thicknesses. The shape is (Number of types of crystal, Number of thicknesses)
+
+
+AllData = np.arange((DiIm[0] * DiIm[1] * DiIm[2] * DiIm[3]), dtype = np.float32).reshape(DiIm) #Declare Image array
+AllLabel = np.arange(DiIm[0] * DiIm[1]).reshape(DiLab) #Declare label array
+
+File1  = open(NewPath +"/Key.txt", "w+") #This file will contain two integers and a name of the original file which can be used to 'decode' the Image data and Label data linking it to the orignial file 
+
+def Thickness(String): #Takes the file name string, looks at the thickness part and returns a integer corresponding to the thickness class
+    String = String[-8:-4]
+    if(String == "0050"):
+        return 0
+    elif(String == "0250"):
+        return 1
+    elif(String == "0450"):
+        return 2
+    elif(String == "0650"):
+        return 3
+    elif(String == "0850"):
+        return 4
+    elif(String == "1050"):
+        return 5
+    elif(String == "1250"):
+        return 6
+    elif(String == "1450"):
+        return 7
+    elif(String == "1650"):
+        return 8
+    elif(String == "1850"):
+        return 9
+    else: #If something goes wrong, an error will be printed
+        print("ERROR")
+        return 10
+
+
+def ReadFile(String): #Reads .txt file and returns an array
+	Array = np.loadtxt(String)
+	return(Array)
+
+CrystalNo = 0 #This number will be used to label different types of crystals
+for i in imageName:
+    imageName_i = Path + "/" + i
+    
+    data = ReadFile(imageName_i)
+    thickness = Thickness(imageName_i)
+    
+    AllData[CrystalNo][thickness] = data[0:64, 0:64] #Puts the quarter sized image into the 4D array at position depending on what crystal it is and how thick it is
+    AllLabel[CrystalNo][thickness] = thickness #Stores the classification at the same position
+    File1.write(str(CrystalNo)+" "+ str(thickness) + " " + i +"\n") #Stores infomation of what the orignial file name was and where the data is now stored (A key)
+    
+    if(thickness == 9): #In alphabetical order, the 9th thickness is the last image of the crystal, so the next image is a different crystal
+        CrystalNo = CrystalNo + 1
+        print(CrystalNo * 10) #Shows progress of the number of images stored in arrays
+
+File1.close()
+np.save(NewPath+"/ImageData.npy", AllData) #The image data is saved as ImageData.npy
+np.save(NewPath+"/ImageLab.npy", AllLabel) #The label data is saved as AllLabel.npy and the Key is was saved as Key.txt
+					   
