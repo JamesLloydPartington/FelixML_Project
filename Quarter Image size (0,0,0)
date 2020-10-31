@@ -1,29 +1,74 @@
 import os 
-import shutil
 import numpy as np
-from PIL import Image
-from numpy import asarray
+
+Path = "64bit_arrs"
+NewPath = "Quarter32Bit"
 
 
-Dir = "E:/pngs_thick"
-New = "E:/pngs_thick_quater"
-
-pngs = os.listdir(Dir)
+imageName = sorted(os.listdir(Path))
 
 
-os.mkdir(New)
-for i in pngs:
-    #print(i)
-    os.mkdir(New + "/" + i)
-    png_i = os.listdir(Dir + "/" + i)
-    for j in png_i:
-        print(j)
-        os.mkdir(New + "/" + i + "/" + j)
-        png_j = os.listdir(Dir + "/" + i + "/" + j)
-        for k in png_j:
-            #print(k)
-            image = Image.open(Dir + "/" + i + "/" + j + "/" + k)
-            data = asarray(image)
-            quaterdata = data[0:64, 0:64]
-            QuaterImage = Image.fromarray(quaterdata)
-            QuaterImage.save(New + "/" + i + "/" + j + "/" + k)
+fileNo = 0
+for i in imageName:
+    fileNo = fileNo + 1
+            
+print(fileNo)
+
+DiIm = [int(fileNo / 10), 10, 64, 64]
+DiLab = [int(fileNo / 10), 10]
+
+
+AllData = np.arange((DiIm[0] * DiIm[1] * DiIm[2] * DiIm[3]), dtype = np.float32).reshape(DiIm)
+AllLabel = np.arange(DiIm[0] * DiIm[1]).reshape(DiLab)
+File1  = open(NewPath +"/Key.txt", "w+")
+
+no_i = 0 #Inside val and train
+
+def Thickness(String):
+    String = String[-8:-4]
+    if(String == "0050"):
+        return 0
+    elif(String == "0250"):
+        return 1
+    elif(String == "0450"):
+        return 2
+    elif(String == "0650"):
+        return 3
+    elif(String == "0850"):
+        return 4
+    elif(String == "1050"):
+        return 5
+    elif(String == "1250"):
+        return 6
+    elif(String == "1450"):
+        return 7
+    elif(String == "1650"):
+        return 8
+    elif(String == "1850"):
+        return 9
+    else:
+        print("ERROR")
+        return 10
+
+
+def ReadFile(String):
+	Array = np.loadtxt(String)
+	return(Array)
+
+CrystalNo = 0
+for i in imageName:
+    imageName_i = Path + "/" + i
+    
+    data = ReadFile(imageName_i)
+    thickness = Thickness(imageName_i)
+    AllData[CrystalNo][thickness] = data[0:64, 0:64]
+    AllLabel[CrystalNo][thickness] = thickness
+    File1.write(str(CrystalNo)+" "+ str(thickness) + " " + i +"\n")
+    
+    if(thickness == 9):
+        CrystalNo = CrystalNo + 1
+        print(CrystalNo)
+
+File1.close()
+np.save(NewPath+"/ImageData.npy", AllData)
+np.save(NewPath+"/ImageLab.npy", AllLabel)
