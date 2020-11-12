@@ -1,35 +1,80 @@
 import numpy as np
-rng = np.random.default_rng()
+from keras import layers
+from keras import models
+from keras import optimizers
+from keras.preprocessing.image import ImageDataGenerator
+from keras.preprocessing import image_dataset_from_directory
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.regularizers import l2
+from keras.utils import to_categorical
+#from keras.models import load_model
+import os
+import matplotlib.pyplot as plt
+import pickle
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"]="3"
+
+PixelDimension = 36
 
 # open data and labels
-source_dir = "F:\\training3000\\1to1000_all_directions_200_sample"
-arr_data = np.load(source_dir+"\\ImageData.npy")
-arr_labels = np.load(source_dir+"\\ImageLab.npy")
+source_dir = "/media/ug-ml/Samsung_T5/training3000/1to1000_all_directions_200_sample"
 
-# create a set of indexes for training and a set for validation.
-number_of_crystals = np.size(arr_data, 0)
-validation_fraction = 0.1
-number_of_validation_crystals = int(number_of_crystals*validation_fraction)
-number_of_training_crystals = number_of_crystals - number_of_validation_crystals
-indexes = np.arange(0, number_of_crystals)
-rng.shuffle(indexes)
-train_indexes = indexes[number_of_validation_crystals:]
-validation_indexes = indexes[:number_of_validation_crystals]
+train_images = np.load("/media/ug-ml/Samsung_T5/training3000/1to1000_all_directions_200_sample/train_data.npy")
 
-# create sets of training data and validation data
-train_data = arr_data[train_indexes].reshape((number_of_training_crystals*10*36,128,128))
-train_labels = arr_labels[train_indexes].reshape((number_of_training_crystals*10*36,1))
-validation_data = arr_data[validation_indexes].reshape((number_of_validation_crystals*10*36,128,128))
-validation_labels = arr_labels[validation_indexes].reshape((number_of_validation_crystals*10*36,1))
+train_lab = to_categorical(np.load("/media/ug-ml/Samsung_T5/training3000/1to1000_all_directions_200_sample/train_labels.npy"))
 
-shuffle_train_indexes = np.arange(0, number_of_training_crystals*10*36)
-shuffle_validation_indexes = np.arange(0, number_of_validation_crystals*10*36)
-rng.shuffle(shuffle_train_indexes)
-rng.shuffle(shuffle_validation_indexes)
+val_images = np.load("/media/ug-ml/Samsung_T5/training3000/1to1000_all_directions_200_sample/validation_data.npy")
 
-train_data = train_data[shuffle_train_indexes]
-train_labels = train_labels[shuffle_train_indexes]
-validation_data = validation_data[validation_indexes]
-validation_labels = validation_labels[validation_indexes]
+val_lab = to_categorical(np.load("/media/ug-ml/Samsung_T5/training3000/1to1000_all_directions_200_sample/validation_labels.npy"))
 
-print(train_data)
+print(train_images.shape,"\n\n\n\n\n\n\n\n\n\n")
+
+model = models.Sequential()
+model.add(layers.SeparableConv2D(128, (3, 3), activation='relu', data_format='channels_first', input_shape=(PixelDimension, 128, 128)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.SeparableConv2D(128, (3, 3), data_format='channels_first', activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.SeparableConv2D(128, (3, 3), data_format='channels_first',  activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Flatten())
+model.add(layers.Dropout(0.25))
+model.add(layers.Dense(512, activation='relu', kernel_regularizer = l2(0.0001)))
+model.add(layers.Dense(10, activation='softmax', kernel_regularizer = l2(0.0001)))
+
+model.compile(loss='categorical_crossentropy', optimizer=optimizers.RMSprop(learning_rate = 0.0005), metrics=['acc'])
+
+#model.summary()
+
+
+EarlyStop = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
+Checkpoint = ModelCheckpoint("3DCovBest.hdf5", monitor='val_loss', verbose=1, save_best_only=True, mode='min', period=1)
+
+#model = models.load_model('F:\\training3000\\pngs_thicknesses_model_L2.h5')
+#model.compile(loss='categorical_crossentropy', optimizer="rmsprop", metrics=['acc'])
+
+
+history = model.fit(train_images, train_lab, epochs=100, batch_size = 64, validation_data = (val_images, val_lab), shuffle = True, callbacks=[EarlyStop, Checkpoint])
+
+model.save('3DCovLast.h5')
+
+test_loss, test_acc = model.evaluate(test_images, test_lab)
+
+with open('3DCovPICKLE', 'wb') as file_pi:
+        pickle.dump(history.history, file_pi)
+
+
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(1, len(acc) + 1)
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title('Training and validation accuracy')
+plt.legend()
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+plt.show()
